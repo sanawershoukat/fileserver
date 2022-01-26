@@ -1,6 +1,8 @@
 package com.core.fileserver.controller;
 
+import com.core.fileserver.dto.ShareDTO;
 import com.core.fileserver.payload.UploadFileResponse;
+import com.core.fileserver.service.FabricService;
 import com.core.fileserver.service.FileStorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +35,14 @@ public class FileController {
     @Autowired
     private FileStorageService fileStorageService;
 
+    @Autowired
+    FabricService fabricService;
+
     @PostMapping("/uploadFile")
-    public UploadFileResponse uploadFile(@RequestParam("file") MultipartFile file) {
-        String fileName = fileStorageService.storeFile(file);
+    public UploadFileResponse uploadFile(@RequestParam("file") MultipartFile file,
+                                         @RequestParam("owner") String owner,
+                                         @RequestParam("companyId") String companyId) {
+        String fileName = fileStorageService.storeFile(file, owner, companyId);
 
         String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/downloadFile/")
@@ -46,11 +53,16 @@ public class FileController {
                 file.getContentType(), file.getSize());
     }
 
+    @PostMapping("/shareFile")
+    public ResponseEntity<?> shareFile(@RequestBody ShareDTO shareDTO) {
+        return ResponseEntity.ok(fabricService.shareFile(shareDTO));
+    }
+
     @PostMapping("/uploadMultipleFiles")
     public List<UploadFileResponse> uploadMultipleFiles(@RequestParam("files") MultipartFile[] files) {
         return Arrays.asList(files)
                 .stream()
-                .map(file -> uploadFile(file))
+                .map(file -> uploadFile(file, null, null))
                 .collect(Collectors.toList());
     }
 
@@ -68,7 +80,7 @@ public class FileController {
         }
 
         // Fallback to the default content type if type could not be determined
-        if(contentType == null) {
+        if (contentType == null) {
             contentType = "application/octet-stream";
         }
 

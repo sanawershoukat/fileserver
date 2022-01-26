@@ -1,8 +1,10 @@
 package com.core.fileserver.service;
 
+import com.core.fileserver.dto.FileDTO;
 import com.core.fileserver.exception.FileStorageException;
 import com.core.fileserver.exception.MyFileNotFoundException;
 import com.core.fileserver.property.FileStorageProperties;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -11,16 +13,21 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 @Service
 public class FileStorageService {
 
     private final Path fileStorageLocation;
+
+    @Autowired
+    FabricService fabricService;
 
     @Autowired
     public FileStorageService(FileStorageProperties fileStorageProperties) {
@@ -34,7 +41,7 @@ public class FileStorageService {
         }
     }
 
-    public String storeFile(MultipartFile file) {
+    public String storeFile(MultipartFile file, String owner, String companyId) {
         // Normalize file name
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
 
@@ -47,6 +54,21 @@ public class FileStorageService {
             // Copy file to the target location (Replacing existing file with the same name)
             Path targetLocation = this.fileStorageLocation.resolve(fileName);
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+            String md5Hash;
+            try (InputStream is = Files.newInputStream(targetLocation)) {
+                md5Hash = DigestUtils.md5Hex(is);
+            }
+
+            FileDTO fileDTO = new FileDTO();
+            fileDTO.setFileId(UUID.randomUUID().toString());
+            fileDTO.setFileName(fileName);
+            fileDTO.setFileSize(String.valueOf(file.getSize()));
+            fileDTO.setOwner(owner);
+            fileDTO.setCompanyId(companyId);
+            fileDTO.setFileHash(md5Hash);
+
+            fabricService.createFile(fileDTO);
 
             return fileName;
         } catch (IOException ex) {

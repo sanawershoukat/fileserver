@@ -10,4 +10,9 @@ spring:
       max-request-size: 215MB
 
 file:
-  upload-dir: classpath:/files/uploads
+  upload-dir: D:\\GFM\\Projects\\fileserver\\uploads
+
+fabric:
+  createFile: http://ec2-54-156-158-129.compute-1.amazonaws.com:8080/fabric-transactions/create-file/
+  shareFile: http://ec2-54-156-158-129.compute-1.amazonaws.com:8080/fabric-transactions/share-file/
+  revokeFileAccess: http://ec2-54-156-158-129.compute-1.amazonaws.com:8080/fabric-transactions/revoke-file-access/
